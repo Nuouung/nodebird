@@ -8,42 +8,38 @@ const nunjucks = require('nunjucks');
 const dotenv = require('dotenv');
 
 dotenv.config();
+
 const pageRouter = require('./routes/page');
+const errorController = require('./controllers/error');
+
+const { sequelize } = require('./models');
 
 const app = express();
 
 app.set('view engine', 'html');
-nunjucks.configure('view', { express: app, watch: true });
+nunjucks.configure('views', { express: app, watch: true });
+sequelize.sync({ force: false })
+    .then(() => console.log('데이터베이스 연결 성공'))
+    .catch(error => console.log(error));
 
 app.use(morgan('dev'));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cookieParser(process.env.COOKIE_SECRET));
-app.use(session(sessionOption));
-
-app.use(pageRouter);
-
-app.use((request, response, next) => {
-    const error = new Error(`${request.method} ${request.url} 라우터가 없습니다`);
-    error.status = 404;
-    next(error);
-});
-
-app.use((request, response, next, error) => {
-   response.locals.message = error.message;
-   response.locals.error = process.env.NODE_ENV === 'production' ? {} : error;
-   response.status(error.status || 500);
-   response.render('error');
-});
-
-app.listen(process.env.PORT || 1337);
-
-const sessionOption = {
+app.use(session({
     resave: false,
     saveUninitialized: false,
+    secret: process.env.COOKIE_SECRET,
     cookie: {
         httpOnly: true,
         secure: false
     }
-}
+}));
+
+app.use(pageRouter);
+
+app.use(errorController.createError);
+app.use(errorController.getErrorPage);
+
+app.listen(process.env.PORT || 3000);

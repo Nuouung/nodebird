@@ -7,9 +7,10 @@ router.use((request, response, next) => {
     response.locals.followerCount = 0;
     response.locals.followingCount = 0;
     response.locals.follwerIdList = [];
+    next();
 });
 
-router.get('join', (request, response) => {
+router.get('/join', (request, response) => {
     response.render('join', { title: '회원가입 - NodeBird' });
 });
 
