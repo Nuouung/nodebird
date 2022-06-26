@@ -6,16 +6,20 @@ const bodyParser = require('body-parser');
 const session = require('express-session');
 const nunjucks = require('nunjucks');
 const dotenv = require('dotenv');
+const passport = require('passport');
 
 dotenv.config();
 
 const pageRouter = require('./routes/page');
+const authRouter = require('./routes/auth');
 const errorController = require('./controllers/error');
 
-const { sequelize } = require('./models');
+const { sequelize } = require('./models/index');
+const passportConfig = require('./passport/index');
 
 const app = express();
 
+passportConfig();
 app.set('view engine', 'html');
 nunjucks.configure('views', { express: app, watch: true });
 sequelize.sync({ force: false })
@@ -36,8 +40,11 @@ app.use(session({
         secure: false
     }
 }));
+app.use(passport.initialize());
+app.use(passport.session());
 
 app.use(pageRouter);
+app.use(authRouter);
 
 app.use(errorController.createError);
 app.use(errorController.getErrorPage);
